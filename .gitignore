@@ -2,3 +2,6 @@
 __pycache__
 
 code_test.py
+test.py
+
+*.png

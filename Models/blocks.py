@@ -85,9 +85,3 @@ class disparityregression(nn.Module):
         out = torch.sum(x * disp, 1)
         return out
 
-class STNet(nn.Module):
-    def __init__(self):
-        super(STNet, self).__init__()
-        self.conv1 = nn.Conv2d(1, 10, kernel_size=5)
-        self.conv2 = nn.Conv2d()
-        
