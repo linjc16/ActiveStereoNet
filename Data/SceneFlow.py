@@ -12,11 +12,12 @@ import pdb
 
 class SceneFlowDataset(Dataset):
 
-    def __init__(self, data_root, val_split, test_split, transform, phase):
+    def __init__(self, data_root, npy_root, val_split, test_split, transform, phase):
 
         super(SceneFlowDataset, self).__init__()
 
         self.data_root = data_root
+        self.npy_root = npy_root
         self.phase = phase
         self.val_split = val_split
         self.test_split = test_split
@@ -32,18 +33,22 @@ class SceneFlowDataset(Dataset):
         self.nb_val = int(self.val_split * total_data_num)
         self.nb_test = int(self.test_split * total_data_num)
 
-        if os.path.exists('./Data/train.npy') and os.path.exists('./Data/val.npy') and os.path.exists('./Data/test.npy'):
-            self.train_list = np.load('./Data/train.npy')
-            self.val_list = np.load('./Data/val.npy')
-            self.test_list = np.load('./Data/test.npy')
+        train_npy = os.path.join(self.npy_root, 'train.npy')
+        val_npy = os.path.join(self.npy_root, 'val.npy')
+        test_npy = os.path.join(self.npy_root, 'test.npy')
+        
+        if os.path.exists(train_npy) and os.path.exists(val_npy) and os.path.exists(test_npy):
+            self.train_list = np.load(train_npy)
+            self.val_list = np.load(val_npy)
+            self.test_list = np.load(test_npy)
         else:
             total_idcs = np.random.permutation(total_data_num)
             self.train_list = total_idcs[0:self.nb_train]
             self.val_list = total_idcs[self.nb_train:self.nb_train + self.nb_val]
             self.test_list = total_idcs[self.nb_train + self.nb_val:]
-            np.save('./Data/train.npy', self.train_list)
-            np.save('./Data/val.npy', self.val_list)
-            np.save('./Data/test.npy', self.test_list)
+            np.save(train_npy, self.train_list)
+            np.save(val_npy, self.val_list)
+            np.save(test_npy, self.test_list)
 
     def __len__(self):
 
