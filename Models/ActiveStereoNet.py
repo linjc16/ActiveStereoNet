@@ -10,6 +10,7 @@ from .blocks import *
 class SiameseTower(nn.Module):
     def __init__(self, scale_factor):
         super(SiameseTower, self).__init__()
+
         self.conv1 = conv_block(nc_in=3, nc_out=32, k=3, s=1, norm=None, act=None)
         resblocks = [ResBlock(32, 32, 3, 1, 1)] * 3
         self.res_blocks = nn.Sequential(*res_blocks)    
@@ -80,6 +81,8 @@ class CoarseNet(nn.Module):
 class RefineNet(nn.Module):
     def __init__(self):
         super(RefineNet, self).__init__()
+        self.device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
+
         # stream_1, left_img
         self.conv1_s1 = conv_block(3, 16, 3, 1)
         self.resblock1_s1 = ResBlock(16, 16, 3, 1, 1)
@@ -119,7 +122,8 @@ class RefineNet(nn.Module):
 class InvalidationNet(nn.Module):
     def __init__(self):
         super(InvalidationNet, self).__init__()
-
+        self.device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
+        
         resblocks1 = [ResBlock(64, 64, 3, 1, 1)] * 5
         self.resblocks1 = nn.Sequential(*resblocks1)
         self.conv1 = conv_block(64, 1, 3, 1, norm=None, act=None)
@@ -130,6 +134,7 @@ class InvalidationNet(nn.Module):
         self.conv3 = conv_block(32, 1, 3, 1, norm=None, act=None)
 
     def forward(self, left_tower, right_tower, left_img, freso_disp):
+
         features = torch.cat((left_tower, right_tower), 1)
         out1 = self.resblocks1(features)
         out1 = self.conv1(out1)
@@ -171,11 +176,11 @@ class ActiveStereoNet(nn.Module):
                 m.bias.data.zero_()
     
     def forward(self, left, right):
-        left_tower = self.SiameseTower(left)
-        right_tower = self.SiameseTower(right)
+        left_tower = self.SiameseTower(left).cuda()
+        right_tower = self.SiameseTower(right).cuda()
 
-        coarseup_pred = self.CoarseNet(left_tower, right_tower)
-        disp = self.RefineNet(left, coarseup_pred)
+        coarseup_pred = self.CoarseNet(left_tower, right_tower).cuda()
+        disp = self.RefineNet(left, coarseup_pred).cuda()
 
         return disp + coarseup_pred
 
@@ -190,6 +195,7 @@ class XTLoss(nn.Module):
     '''
     def __init__(self):
         super(XTLoss, self).__init__()
+        self.device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
         self.theta = torch.Tensor(
             [[1, 0, 0],  # 控制左右，-右，+左
             [0, 1, 0]]    # 控制上下，-下，+上
@@ -208,8 +214,8 @@ class XTLoss(nn.Module):
         grid = F.affine_grid(self.theta, left_img.size())
         
         dispmap_norm = dispmap * 2 / w
-        dispmap_norm = torch.from_numpy(dispmap_norm).unsqueeze(3)
-        dispmap_norm = torch.cat((dispmap_norm, torch.zeros(dispmap_norm.size())), dim=3)
+        dispmap_norm = torch.from_numpy(dispmap_norm).unsqueeze(3).to(self.device)
+        dispmap_norm = torch.cat((dispmap_norm, torch.zeros(dispmap_norm.size()).to(self.device)), dim=3).to(self.device)
 
         grid -= dispmap_norm
         
@@ -218,9 +224,9 @@ class XTLoss(nn.Module):
         recon_img_LCN, _, _ = self.LCN(recon_img, 9)
 
         left_img_LCN, _, left_std_local = self.LCN(left_img, 9)
-
-        losses = torch.abs(((left_img_LCN - recon_img_LCN) * left_std_local)).mean()
-
+        
+        losses = torch.abs(((left_img_LCN - recon_img_LCN) * left_std_local)).mean().to(self.device)
+        
         return losses
 
 
@@ -231,12 +237,12 @@ class XTLoss(nn.Module):
                 kSize : 9 * 9
         '''
 
-        w = torch.ones((self.outplanes, self.inplanes, kSize, kSize)) / (kSize * kSize)
+        w = torch.ones((self.outplanes, self.inplanes, kSize, kSize)).to(self.device) / (kSize * kSize)
         mean_local = F.conv2d(input=img, weight=w, padding=kSize // 2)
 
         mean_square_local = F.conv2d(input=img ** 2, weight=w, padding=kSize // 2)
         std_local = (mean_square_local - mean_local ** 2) * (kSize ** 2) / (kSize ** 2 - 1)
         
         epsilon = 1e-6
-
+        
         return (img - mean_local) / (std_local + epsilon), mean_local, std_local
