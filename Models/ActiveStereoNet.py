@@ -179,9 +179,6 @@ class ActiveStereoNet(nn.Module):
 
         return disp + coarseup_pred
 
-
-
-
 class XTLoss(nn.Module):
     '''
     Args:
