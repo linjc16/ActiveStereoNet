@@ -4,10 +4,10 @@ import torch.nn.functional as F
 import numpy as np
 
 
-def conv_block(nc_in, nc_out, k, s, norm='bn', act='lrelu', dialation=1):
+def conv_block(nc_in, nc_out, k, s, norm='bn', act='lrelu', dilation=1):
 
     blocks = [
-        nn.Conv2d(nc_in, nc_out, k, s, dialation if dialation > 1 else k // 2, dialation=dialation)
+        nn.Conv2d(nc_in, nc_out, k, s, dilation if dilation > 1 else k // 2, dilation=dilation)
     ]
     if norm is not None:
         norm = norm.lower()
@@ -58,9 +58,9 @@ def conv3d_block(in_planes, out_planes, kernel_size, stride, norm='bn', act='lre
 
 class ResBlock(nn.Module):
 
-    def __init__(self, in_planes, out_planes, kernel_size, stride, dialation=1):
+    def __init__(self, in_planes, out_planes, kernel_size, stride, dilation=1):
         super(ResBlock, self).__init__()
-        self.conv = conv_block(in_planes, out_planes, kernel_size, stride, norm='bn', act='lrelu', dialation=dialation)
+        self.conv = conv_block(in_planes, out_planes, kernel_size, stride, norm='bn', act='lrelu', dilation=dilation)
         
     def forward(self, x):
         out = self.conv(x)
