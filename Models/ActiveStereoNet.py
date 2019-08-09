@@ -12,9 +12,9 @@ class SiameseTower(nn.Module):
         super(SiameseTower, self).__init__()
 
         self.conv1 = conv_block(nc_in=3, nc_out=32, k=3, s=1, norm=None, act=None)
-        resblocks = [ResBlock(32, 32, 3, 1, 1)] * 3
+        res_blocks = [ResBlock(32, 32, 3, 1, 1)] * 3
         self.res_blocks = nn.Sequential(*res_blocks)    
-        convblocks = [conv_block(32, 32, k=2, s=1, norm='bn', act='lrelu')] * scale_factor
+        convblocks = [conv_block(32, 32, k=2, s=1, norm='bn', act='lrelu')] * int(scale_factor ** (1/3))
         self.conv_blocks = nn.Sequential(*convblocks)
         self.conv2 = conv_block(nc_in=32, nc_out=32, k=3, s=1, norm=None, act=None)
     

@@ -3,25 +3,26 @@
     "deterministic": true,
     "gpu_ids": "0",
     "cpu_threads": "4",
-    "dataset": "SceneFlow",
+    "dataset_name": "SceneFlow",
     "image_size": [960, 540],
+    "cuda": false,
 
     "data": {
-       "data_root": "D:/dataset/",
+       "data_root": "E:/github/dataset/",
        "npy_root": "./Data",
        "test_split": 0.1,
        "val_split": 0.1
     },
-
+    
     "model": {
         "which_model": "ActiveStereoNet",
         "max_disp": 144,
         "scale_factor": 8,
         "loss": "XTLoss"
     },
-
+    
     "solver": {
-        "batch_size": 32,
+        "batch_size": 16,
         "optimizer_type": "RMSProp",
         "lr_init": 1e-4,
         "lr_schedule": [5e-3, 2.5e-3],
