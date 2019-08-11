@@ -47,7 +47,7 @@ class TestSolver(object):
             EPE_metric = 0.0
             TriPE_metric = 0.0
             N_total = 0.0
-            pdb.set_trace()
+            #pdb.set_trace()
             for test_batch in self.test_loader:
                 imgL, imgR, disp_L, _ = test_batch
                 imgL, imgR, disp_L = imgL.cuda(), imgR.cuda(), disp_L.cuda()

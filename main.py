@@ -3,10 +3,7 @@ import argparse
 import torch
 import numpy as np
 import random
-<<<<<<< HEAD
 import os
-=======
->>>>>>> 1f57d23fd6d58cfd512fe2374d9ee68a80ff6882
 from torch.backends import cudnn
 
 from Options import parse_opt
