@@ -2,12 +2,13 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
+import pdb
 
 
-def conv_block(nc_in, nc_out, k, s, norm='bn', act='lrelu', dialation=1):
+def conv_block(nc_in, nc_out, k, s, norm='bn', act='lrelu', dilation=1):
 
     blocks = [
-        nn.Conv2d(nc_in, nc_out, k, s, dialation if dialation > 1 else k // 2, dialation=dialation)
+        nn.Conv2d(nc_in, nc_out, k, s, dilation if dilation > 1 else k // 2, dilation=dilation)
     ]
     if norm is not None:
         norm = norm.lower()
@@ -21,9 +22,9 @@ def conv_block(nc_in, nc_out, k, s, norm='bn', act='lrelu', dialation=1):
     if act is not None:
         act = act.lower()
         if act == 'relu':
-            blocks.append(nn.ReLU(True))
+            blocks.append(nn.ReLU(False))
         elif act == 'lrelu':
-            blocks.append(nn.LeakyReLU(0.2, True))
+            blocks.append(nn.LeakyReLU(0.2, False))
         else:
             raise RuntimeError
     
@@ -47,9 +48,9 @@ def conv3d_block(in_planes, out_planes, kernel_size, stride, norm='bn', act='lre
     if act is not None:
         act = act.lower()
         if act == 'lrelu':
-            blocks.append(nn.LeakyReLU(0.2, True))
+            blocks.append(nn.LeakyReLU(0.2, False))
         elif act == 'relu':
-            blocks.append(nn.ReLU(True))
+            blocks.append(nn.ReLU(False))
         else:
             raise RuntimeError
     
@@ -58,9 +59,9 @@ def conv3d_block(in_planes, out_planes, kernel_size, stride, norm='bn', act='lre
 
 class ResBlock(nn.Module):
 
-    def __init__(self, in_planes, out_planes, kernel_size, stride, dialation=1):
+    def __init__(self, in_planes, out_planes, kernel_size, stride, dilation=1):
         super(ResBlock, self).__init__()
-        self.conv = conv_block(in_planes, out_planes, kernel_size, stride, norm='bn', act='lrelu', dialation=dialation)
+        self.conv = conv_block(in_planes, out_planes, kernel_size, stride, norm='bn', act='lrelu', dilation=dilation)
         
     def forward(self, x):
         out = self.conv(x)
@@ -69,19 +70,18 @@ class ResBlock(nn.Module):
 
 
 
-class disparityregression(nn.Module):
+class DisparityRegression(nn.Module):
     def __init__(self, maxdisp):
-        super(disparityregression, self).__init__()
-        self.device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
-        self.disp = torch.Tensor(
+        super(DisparityRegression, self).__init__()
+        
+        self.disp = torch.from_numpy(
             np.reshape(np.array(range(maxdisp)), 
             [1, maxdisp, 1, 1]
-            ).to(self.device),
-            requires_grad=False
-        )
+            )).cuda().float().requires_grad_(False)
     
     def forward(self, x):
-        disp = self.disp.repeat(x.size([0], 1, x.size()[2], x.size()[3]))
-        out = torch.sum(x * disp, 1)
-        return out
+        
+        y = x.mul(self.disp).sum(dim=1, keepdim=True)
+       
+        return y
 

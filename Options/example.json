@@ -1,35 +1,36 @@
 {
-    "mode":"train",
+    "mode":"test",
     "deterministic": true,
     "gpu_ids": "0",
     "cpu_threads": "4",
-    "dataset": "SceneFlow",
-    "image_size": [960, 540],
+    "dataset_name": "SceneFlow",
 
     "data": {
-       "data_root": "D:/dataset/",
+       "data_root": "I:/dataset/",
        "npy_root": "./Data",
        "test_split": 0.1,
-       "val_split": 0.1
+       "val_split": 0.1,
+       "crop_size": [960, 540]
     },
-
+    
     "model": {
         "which_model": "ActiveStereoNet",
         "max_disp": 144,
         "scale_factor": 8,
-        "loss": "XTLoss"
+        "loss": "RHLoss"
     },
-
+    
     "solver": {
-        "batch_size": 32,
+        "batch_size": 2,
         "optimizer_type": "RMSProp",
         "lr_init": 1e-4,
-        "lr_schedule": [5e-3, 2.5e-3],
-        "milestones": [60000, 80000],
-        "eval_steps": 5000,
-        "save_steps": 5000,
-        "max_steps": 100000,
-        "ckpt_prefix": "./Experiments",
-        "resume": false
+        "gamma": 0.5,
+        "milestones": [300, 600],
+        "eval_steps": 200,
+        "save_steps": 200,
+        "max_steps": 1000,
+        "exp_prefix": "Experiments",
+        "resume_iter": 1000,
+        "model_name": "190810_2"
     }
 }
