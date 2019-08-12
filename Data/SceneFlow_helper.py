@@ -46,18 +46,18 @@ def read_sceneflow(filepath):
     for ss in subdir:
         flying = os.listdir(flying_dir + ss)
 
-    for ff in flying:
-        
-        imm_l = os.listdir(flying_dir + ss + '/' + ff + '/left/')
-        
-        for im in imm_l:
-            if is_image_file(flying_dir + ss + '/' + ff + '/left/' + im):
-                all_left_img.append(flying_dir + ss + '/' + ff + '/left/' + im)
+        for ff in flying:
 
-        all_left_disp.append(flying_disp + '/TRAIN/' + ss + '/' + ff + '/left/' + im.split(".")[0] + '.pfm')
+            imm_l = os.listdir(flying_dir + ss + '/' + ff + '/left/')
 
-        if is_image_file(flying_dir + ss + '/' + ff + '/right/' + im):
-            all_right_img.append(flying_dir + ss + '/' + ff + '/right/' + im)
+            for im in imm_l:
+                if is_image_file(flying_dir + ss + '/' + ff + '/left/' + im):
+                    all_left_img.append(flying_dir + ss + '/' + ff + '/left/' + im)
+
+                all_left_disp.append(flying_disp + '/TRAIN/' + ss + '/' + ff + '/left/' + im.split(".")[0] + '.pfm')
+
+                if is_image_file(flying_dir + ss + '/' + ff + '/right/' + im):
+                    all_right_img.append(flying_dir + ss + '/' + ff + '/right/' + im)
 
     flying_dir = flying_path + '/TEST/'
 
@@ -66,28 +66,28 @@ def read_sceneflow(filepath):
     for ss in subdir:
         flying = os.listdir(flying_dir + ss)
 
-    for ff in flying:
-        
-        imm_l = os.listdir(flying_dir + ss + '/' + ff + '/left/')
-        
-        for im in imm_l:
-            if is_image_file(flying_dir + ss + '/' + ff + '/left/' + im):
-                test_left_img.append(flying_dir + ss + '/' + ff + '/left/' + im)
+        for ff in flying:
 
-            test_left_disp.append(flying_disp + '/TEST/' + ss + '/' + ff + '/left/' + im.split(".")[0] + '.pfm')
+            imm_l = os.listdir(flying_dir + ss + '/' + ff + '/left/')
 
-            if is_image_file(flying_dir + ss + '/' + ff + '/right/' + im):
-                test_right_img.append(flying_dir + ss + '/' + ff + '/right/' + im)
+            for im in imm_l:
+                if is_image_file(flying_dir + ss + '/' + ff + '/left/' + im):
+                    test_left_img.append(flying_dir + ss + '/' + ff + '/left/' + im)
+
+                test_left_disp.append(flying_disp + '/TEST/' + ss + '/' + ff + '/left/' + im.split(".")[0] + '.pfm')
+
+                if is_image_file(flying_dir + ss + '/' + ff + '/right/' + im):
+                    test_right_img.append(flying_dir + ss + '/' + ff + '/right/' + im)
     
     driving_dir = filepath + [x for x in image if 'driving' in x][0] + '/'
     driving_disp = filepath + [x for x in disp if 'driving' in x][0]
 
-    # subdir1 = ['35mm_focallength', '15mm_focallength']
-    subdir1 = ['15mm_focallength']
-    # subdir2 = ['scene_backwards', 'scene_forwards']
-    subdir2= ['scene_backwards']
-    # subdir3 = ['fast', 'slow']
-    subdir3 = ['fast']
+    subdir1 = ['35mm_focallength', '15mm_focallength']
+    #subdir1 = ['15mm_focallength']
+    subdir2 = ['scene_backwards', 'scene_forwards']
+    #subdir2= ['scene_backwards']
+    subdir3 = ['fast', 'slow']
+    #subdir3 = ['fast']
 
     for i in subdir1:
         for j in subdir2:

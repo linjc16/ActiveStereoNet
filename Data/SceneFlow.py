@@ -23,16 +23,19 @@ class SceneFlowDataset(Dataset):
         self.test_split = test_split
         self.transform = transform
 
-        self.left_imgs, self.right_imgs, self.disps, _, _, _ = read_sceneflow(self.data_root)
+        self.left_imgs, self.right_imgs, self.disps, self.test_left_img, self.test_right_img, self.test_disps = read_sceneflow(self.data_root)
+        pdb.set_trace()
 
-        assert len(self.left_imgs) == len(self.right_imgs) == len(self.disps), 'Invalid dataset!'
-
+        assert len(self.left_imgs) == len(self.right_imgs) == len(self.disps), 'Invalid training dataset!'
+        assert len(self.test_left_img) == len(self.test_right_img) == len(self.test_disps), 'Invalid testing dataset!'
+        pdb.set_trace()
         total_data_num = len(self.left_imgs)
 
         self.nb_train = int((1 - self.val_split - self.test_split) * total_data_num)
         self.nb_val = int(self.val_split * total_data_num)
         self.nb_test = int(self.test_split * total_data_num)
 
+        #pdb.set_trace()
         train_npy = os.path.join(self.npy_root, 'train.npy')
         val_npy = os.path.join(self.npy_root, 'val.npy')
         test_npy = os.path.join(self.npy_root, 'test.npy')
@@ -40,7 +43,10 @@ class SceneFlowDataset(Dataset):
         if os.path.exists(train_npy) and os.path.exists(val_npy) and os.path.exists(test_npy):
             self.train_list = np.load(train_npy)
             self.val_list = np.load(val_npy)
+            #pdb.set_trace()
             self.test_list = np.load(test_npy)
+
+            
         else:
             total_idcs = np.random.permutation(total_data_num)
             self.train_list = total_idcs[0:self.nb_train]

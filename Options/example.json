@@ -1,5 +1,5 @@
 {
-    "mode":"test",
+    "mode":"train",
     "deterministic": true,
     "gpu_ids": "0",
     "cpu_threads": "4",
@@ -25,12 +25,12 @@
         "optimizer_type": "RMSProp",
         "lr_init": 1e-4,
         "gamma": 0.5,
-        "milestones": [300, 600],
-        "eval_steps": 200,
-        "save_steps": 200,
-        "max_steps": 1000,
+        "milestones": [60000, 80000],
+        "eval_steps": 1000,
+        "save_steps": 2000,
+        "max_steps": 100000,
         "exp_prefix": "Experiments",
-        "resume_iter": 1000,
-        "model_name": "190810_2"
+        "resume_iter": 15000,
+        "model_name": "190812_drving"
     }
 }
