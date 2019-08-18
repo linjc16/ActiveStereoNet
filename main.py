@@ -25,9 +25,9 @@ def main():
     
     # Deterministic Settings.
     if opt['deterministic']:
-        torch.manual_seed(0)
-        np.random.seed(0)
-        random.seed(0)
+        torch.manual_seed(712)
+        np.random.seed(712)
+        random.seed(712)
         cudnn.deterministic = True
         cudnn.benchmark = False
     else:

@@ -41,8 +41,9 @@ class CoarseNet(nn.Module):
         self.conv3d_1 = conv3d_block(64, 32, 3, 1, norm='bn', act='lrelu')
         self.conv3d_2 = conv3d_block(32, 32, 3, 1, norm='bn', act='lrelu')
         self.conv3d_3 = conv3d_block(32, 32, 3, 1, norm='bn', act='lrelu')
+        self.conv3d_4 = conv3d_block(32, 32, 3, 1, norm='bn', act='lrelu')
 
-        self.conv3d_4 = conv3d_block(32, 1, 3, 1, norm=None, act=None)
+        self.conv3d_5 = conv3d_block(32, 1, 3, 1, norm=None, act=None)
         self.disp_reg = DisparityRegression(self.maxdisp)
 
 
@@ -68,8 +69,9 @@ class CoarseNet(nn.Module):
         cost = self.conv3d_1(cost)
         cost = self.conv3d_2(cost) + cost
         cost = self.conv3d_3(cost) + cost
-        
-        cost = self.conv3d_4(cost)
+        cost = self.conv3d_4(cost) + cost
+
+        cost = self.conv3d_5(cost)
         #pdb.set_trace()
         cost = F.interpolate(cost, size=[self.maxdisp, self.img_shape[1], self.img_shape[0]], mode='trilinear', align_corners=False)
         #pdb.set_trace()
@@ -158,76 +160,48 @@ class ActiveStereoNet(nn.Module):
         self.scale_factor = scale_factor
         self.SiameseTower = SiameseTower(scale_factor)
         self.CoarseNet = CoarseNet(maxdisp, scale_factor, img_shape)
-        self.RefineNet = RefineNet()
+        self.RefineNet1 = RefineNet()
+        #self.RefineNet2 = RefineNet()
+        #self.RefineNet3 = RefineNet()
         #self.InvalidationNet = InvalidationNet()
         self.img_shpae = img_shape
+
+
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d):
+                n = m.kernel_size[0] * m.kernel_size[1] * m.out_channels
+                m.weight.data.normal_(0, math.sqrt(2. / n))
+            elif isinstance(m, nn.Conv3d):
+                n = m.kernel_size[0] * m.kernel_size[1]*m.kernel_size[2] * m.out_channels
+                m.weight.data.normal_(0, math.sqrt(2. / n))
+            elif isinstance(m, nn.BatchNorm2d):
+                m.weight.data.fill_(1)
+                m.bias.data.zero_()
+            elif isinstance(m, nn.BatchNorm3d):
+                m.weight.data.fill_(1)
+                m.bias.data.zero_()
+            elif isinstance(m, nn.Linear):
+                m.bias.data.zero_()
+        
+        
     
     def forward(self, left, right):
-
+        
         left_tower = self.SiameseTower(left)
         right_tower = self.SiameseTower(right)
         #pdb.set_trace()
         coarseup_pred = self.CoarseNet(left_tower, right_tower)
-        disp = self.RefineNet(left, coarseup_pred)
-
-        return disp + coarseup_pred
-
-class XTLoss(nn.Module):
-    '''
-    Args:
-        left_img right_img: N * C * H * W,
-        dispmap : N * H * W
-    '''
-    def __init__(self):
-        super(XTLoss, self).__init__()
-        self.device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
-        self.theta = torch.Tensor(
-            [[1, 0, 0],  # 控制左右，-右，+左
-            [0, 1, 0]]    # 控制上下，-下，+上
-        )
-        self.inplanes = 3
-        self.outplanes = 3
+        res_disp_1 = self.RefineNet1(left, coarseup_pred)
+        ref_pred1 = coarseup_pred + res_disp_1
         
-
-    def forward(self, left_img, right_img, dispmap):
-
-        n, c, h, w = left_img.shape
-
+        #res_disp_2 = self.RefineNet2(left, ref_pred1)
+        #ref_pred2 = ref_pred1 + res_disp_2
         
-        self.theta = self.theta.repeat(left_img.size()[0], 1, 1)
-
-        grid = F.affine_grid(self.theta, left_img.size())
+        #res_disp_3 = self.RefineNet3(left, ref_pred2)
         
-        dispmap_norm = dispmap * 2 / w
-        dispmap_norm = torch.from_numpy(dispmap_norm).unsqueeze(3).to(self.device)
-        dispmap_norm = torch.cat((dispmap_norm, torch.zeros(dispmap_norm.size()).to(self.device)), dim=3).to(self.device)
+        #pred = res_disp_3 + ref_pred2
 
-        grid -= dispmap_norm
-        
-        recon_img = F.grid_sample(right_img, grid)
+        pred = ref_pred1
 
-        recon_img_LCN, _, _ = self.LCN(recon_img, 9)
+        return nn.ReLU(False)(pred)
 
-        left_img_LCN, _, left_std_local = self.LCN(left_img, 9)
-        
-        losses = torch.abs(((left_img_LCN - recon_img_LCN) * left_std_local)).mean().to(self.device)
-        
-        return losses
-
-
-    def LCN(self, img, kSize):
-        '''
-            Args: 
-                img : N * C * H * W
-                kSize : 9 * 9
-        '''
-
-        w = torch.ones((self.outplanes, self.inplanes, kSize, kSize)).to(self.device) / (kSize * kSize)
-        mean_local = F.conv2d(input=img, weight=w, padding=kSize // 2)
-
-        mean_square_local = F.conv2d(input=img ** 2, weight=w, padding=kSize // 2)
-        std_local = (mean_square_local - mean_local ** 2) * (kSize ** 2) / (kSize ** 2 - 1)
-        
-        epsilon = 1e-6
-        
-        return (img - mean_local) / (std_local + epsilon), mean_local, std_local

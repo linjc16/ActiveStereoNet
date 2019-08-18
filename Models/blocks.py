@@ -22,9 +22,9 @@ def conv_block(nc_in, nc_out, k, s, norm='bn', act='lrelu', dilation=1):
     if act is not None:
         act = act.lower()
         if act == 'relu':
-            blocks.append(nn.ReLU(False))
+            blocks.append(nn.ReLU(True))
         elif act == 'lrelu':
-            blocks.append(nn.LeakyReLU(0.2, False))
+            blocks.append(nn.LeakyReLU(0.2, True))
         else:
             raise RuntimeError
     
@@ -48,9 +48,9 @@ def conv3d_block(in_planes, out_planes, kernel_size, stride, norm='bn', act='lre
     if act is not None:
         act = act.lower()
         if act == 'lrelu':
-            blocks.append(nn.LeakyReLU(0.2, False))
+            blocks.append(nn.LeakyReLU(0.2, True))
         elif act == 'relu':
-            blocks.append(nn.ReLU(False))
+            blocks.append(nn.ReLU(True))
         else:
             raise RuntimeError
     
@@ -65,7 +65,7 @@ class ResBlock(nn.Module):
         
     def forward(self, x):
         out = self.conv(x)
-        out += x
+        out = out + x
         return out
 
 
