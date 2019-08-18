@@ -1,7 +1,10 @@
 import torch
 import os
 import time
+import cv2
+import numpy as np
 import torch.nn as nn
+import matplotlib.pyplot as plt
 import torch.optim as optim
 import torch.nn.functional as F
 from Data import get_loader
@@ -22,6 +25,7 @@ class TestSolver(object):
         self.max_disp = self.cfg_model['max_disp']
         self.model = get_model(self.config)
         self.test_loader = get_loader(self.config)
+        self.imshow = config['imshow']
         
     
     def load_checkpoint(self):
@@ -31,6 +35,39 @@ class TestSolver(object):
         states = torch.load(ckpt_full, map_location=lambda storage, loc: storage)
 
         self.model.load_state_dict(states['model_state'])
+
+    def save_results(self, output, target):
+
+        for i in range(output.shape[0]):
+            
+            outcmap = output[i]
+            tarcmap = target[i]
+            #pdb.set_trace()
+            outcmap = outcmap.cpu().numpy().astype(np.uint8).squeeze()
+            tarcmap = tarcmap.cpu().numpy().astype(np.uint8).squeeze()
+
+            #pdb.set_trace()
+            outcmap = cv2.applyColorMap(outcmap, cv2.COLORMAP_RAINBOW)
+            tarcmap = cv2.applyColorMap(tarcmap, cv2.COLORMAP_RAINBOW)
+            
+            plt.figure(figsize=(640, 840))
+            plt.subplot(1,2,1)
+            plt.imshow(tarcmap)
+            plt.axis('off')
+            plt.title('G.T')
+    
+
+            plt.subplot(1,2,2)
+            plt.imshow(outcmap)
+            plt.axis('off')
+            plt.title('Prediction')
+
+            plt.show()
+            #pdb.set_trace()
+
+        
+        
+        
 
 
     def run(self):
@@ -56,11 +93,15 @@ class TestSolver(object):
 
                 disp_pred = self.model(imgL, imgR)
 
-                EPE_metric = (epe_metric(disp_L, disp_pred, self.max_disp) * N_curr + EPE_metric * N_total) / (N_curr + N_total)
-                TriPE_metric = (tripe_metric(disp_L, disp_pred, self.max_disp) + TriPE_metric * N_total) / (N_curr + N_total)
-
+                EPE_metric += epe_metric(disp_L, disp_pred, self.max_disp) * N_curr
+                TriPE_metric += tripe_metric(disp_L, disp_pred, self.max_disp) * N_curr
+                if self.imshow:
+                    self.save_results(disp_pred, disp_L)
+                
                 N_total += N_curr
-        
+            
+            EPE_metric /= N_total
+            TriPE_metric /= N_total
 
         elapsed = time.time() - start_time
         print(
