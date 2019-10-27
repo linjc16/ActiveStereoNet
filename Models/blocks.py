@@ -10,6 +10,7 @@ def conv_block(nc_in, nc_out, k, s, norm='bn', act='lrelu', dilation=1):
     blocks = [
         nn.Conv2d(nc_in, nc_out, k, s, dilation if dilation > 1 else k // 2, dilation=dilation)
     ]
+    '''
     if norm is not None:
         norm = norm.lower()
         if norm == 'bn':
@@ -18,6 +19,7 @@ def conv_block(nc_in, nc_out, k, s, norm='bn', act='lrelu', dilation=1):
             blocks.append(nn.InstanceNorm2d(nc_out))
         else:
             raise RuntimeError
+    '''
 
     if act is not None:
         act = act.lower()
@@ -36,6 +38,7 @@ def conv3d_block(in_planes, out_planes, kernel_size, stride, norm='bn', act='lre
     blocks = [
         nn.Conv3d(in_planes, out_planes, kernel_size, stride, kernel_size // 2)
     ]
+    '''
     if norm is not None:
         norm = norm.lower()
         if norm == 'bn':
@@ -44,6 +47,7 @@ def conv3d_block(in_planes, out_planes, kernel_size, stride, norm='bn', act='lre
             blocks.append(nn.InstanceNorm3d(out_planes))
         else:
             raise RuntimeError
+    '''
     
     if act is not None:
         act = act.lower()

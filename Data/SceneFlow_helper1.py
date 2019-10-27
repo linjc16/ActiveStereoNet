@@ -24,11 +24,9 @@ def read_sceneflow(filepath):
     all_left_img = []
     all_right_img = []
     all_left_disp = []
-    all_right_disp = []
     test_left_img = []
     test_right_img = []
     test_left_disp = []
-    test_right_disp = []
 
     for dd in monkaa_dir:
         for im in os.listdir(monkaa_path + '/' + dd + '/left/'):
@@ -39,7 +37,6 @@ def read_sceneflow(filepath):
         for im in os.listdir(monkaa_path + '/' + dd + '/right/'):
             if is_image_file(monkaa_path + '/' + dd + '/right/' + im):
                 all_right_img.append(monkaa_path + '/' + dd + '/right/' + im)
-                all_right_disp.append(monkaa_disp + '/' + dd + '/right/' + im.split(".")[0] + '.pfm')
     
     flying_path = filepath  +  [x for x in image if x == 'frames_cleanpass'][0]
     flying_disp = filepath  +  [x for x in disp if x == 'frames_disparity'][0]
@@ -56,14 +53,11 @@ def read_sceneflow(filepath):
             for im in imm_l:
                 if is_image_file(flying_dir + ss + '/' + ff + '/left/' + im):
                     all_left_img.append(flying_dir + ss + '/' + ff + '/left/' + im)
-                
+
                 all_left_disp.append(flying_disp + '/TRAIN/' + ss + '/' + ff + '/left/' + im.split(".")[0] + '.pfm')
 
                 if is_image_file(flying_dir + ss + '/' + ff + '/right/' + im):
                     all_right_img.append(flying_dir + ss + '/' + ff + '/right/' + im)
-                
-                all_right_disp.append(flying_disp + '/TRAIN/' + ss + '/' + ff + '/right/' + im.split(".")[0] + '.pfm')
-
     
     flying_dir = flying_path + '/TEST/'
 
@@ -84,9 +78,6 @@ def read_sceneflow(filepath):
 
                 if is_image_file(flying_dir + ss + '/' + ff + '/right/' + im):
                     test_right_img.append(flying_dir + ss + '/' + ff + '/right/' + im)
-                
-                test_right_disp.append(flying_disp + '/TEST/' + ss + '/' + ff + '/right/' + im.split(".")[0] + '.pfm')
-            
     
     driving_dir = filepath + [x for x in image if 'driving' in x][0] + '/'
     driving_disp = filepath + [x for x in disp if 'driving' in x][0]
@@ -110,8 +101,6 @@ def read_sceneflow(filepath):
 
                     if is_image_file(driving_dir + i + '/' + j + '/' + k + '/right/' + im):
                         all_right_img.append(driving_dir + i + '/' + j + '/' + k + '/right/' + im)
-                    
-                    all_right_disp.append(driving_disp + '/' + i + '/' + j + '/' + k + '/right/' + im.split(".")[0] + '.pfm')
 
-    #pdb.set_trace()
-    return all_left_img, all_right_img, all_left_disp, test_left_img, test_right_img, test_left_disp, all_right_disp, test_right_disp
+
+    return all_left_img, all_right_img, all_left_disp, test_left_img, test_right_img, test_left_disp

@@ -18,7 +18,7 @@
         "which_model": "ActiveStereoNet",
         "max_disp": 144,
         "scale_factor": 8,
-        "loss": "RHLoss"
+        "loss": "XTLoss"
     },
     
     "solver": {
@@ -26,12 +26,12 @@
         "optimizer_type": "RMSProp",
         "lr_init": 1e-3,
         "gamma": 0.5,
-        "milestones": [10000, 40000, 60000],
-        "eval_steps": 1000,
-        "save_steps": 1000,
-        "max_steps": 150000,
+        "milestones": [20000, 30000, 40000, 50000],
+        "eval_steps": 2000,
+        "save_steps": 2000,
+        "max_steps": 60000,
         "exp_prefix": "Experiments",
-        "resume_iter": 0,
-        "model_name": "190817"
+        "resume_iter": 32000,
+        "model_name": "191027"
     }
 }

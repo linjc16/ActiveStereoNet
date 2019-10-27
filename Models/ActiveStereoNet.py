@@ -46,7 +46,44 @@ class CoarseNet(nn.Module):
         self.conv3d_5 = conv3d_block(32, 1, 3, 1, norm=None, act=None)
         self.disp_reg = DisparityRegression(self.maxdisp)
 
+    def costVolume(self, refimg_fea, targetimg_fea, views):
+        #Cost Volume
+        cost = torch.zeros(refimg_fea.size()[0], refimg_fea.size()[1]*2, self.maxdisp//self.scale_factor, refimg_fea.size()[2], refimg_fea.size()[3]).cuda()
+        views = views.lower()
+        if views == 'left':
+            for i in range(self.maxdisp//self.scale_factor):
+                if i > 0:
+                    cost[:, :refimg_fea.size()[1], i, :, i:] = refimg_fea[:,:,:,i:]
+                    cost[:, refimg_fea.size()[1]:, i, :, i:] = targetimg_fea[:,:,:,:-i]
+                else:
+                    cost[:, :refimg_fea.size()[1], i, :,:] = refimg_fea
+                    cost[:, refimg_fea.size()[1]:, i, :,:] = targetimg_fea
+        elif views == 'right':
+            for i in range(self.maxdisp // self.scale_factor):
+                if i > 0:
+                    cost[:, :refimg_fea.size()[1], i, :, :-i] = refimg_fea[:,:,:,i:]
+                    cost[:, refimg_fea.size()[1]:, i, :, :-i] = targetimg_fea[:,:,:,:-i]
+                else:
+                    cost[:, :refimg_fea.size()[1], i, :,:] = refimg_fea
+                    cost[:, refimg_fea.size()[1]:, i, :,:] = targetimg_fea
+        return cost
 
+    def Coarsepred(self, cost):
+        #pdb.set_trace()
+        cost = self.conv3d_1(cost)
+        cost = self.conv3d_2(cost) + cost
+        cost = self.conv3d_3(cost) + cost
+        cost = self.conv3d_4(cost) + cost
+        
+        cost = self.conv3d_5(cost)
+        #pdb.set_trace()
+        cost = F.interpolate(cost, size=[self.maxdisp, self.img_shape[1], self.img_shape[0]], mode='trilinear', align_corners=False)
+        #pdb.set_trace()
+        pred = cost.softmax(dim=2).squeeze(dim=1)
+        pred = self.disp_reg(pred)
+
+        return pred
+    
     def forward(self, refimg_fea, targetimg_fea):
         '''
         Args:
@@ -54,31 +91,15 @@ class CoarseNet(nn.Module):
             targetimg_fea: output of SiameseTower for the right image
 
         '''
-        #Cost Volume
-        cost = torch.zeros(refimg_fea.size()[0], refimg_fea.size()[1]*2, self.maxdisp//self.scale_factor, refimg_fea.size()[2], refimg_fea.size()[3]).cuda()
-        
-        for i in range(self.maxdisp//self.scale_factor):
-            if i > 0:
-                cost[:, :refimg_fea.size()[1], i, :, i:] = refimg_fea[:,:,:,i:]
-                cost[:, refimg_fea.size()[1]:, i, :, i:] = targetimg_fea[:,:,:,:-i]
-            else:
-                cost[:, :refimg_fea.size()[1], i, :,:] = refimg_fea
-                cost[:, refimg_fea.size()[1]:, i, :,:] = targetimg_fea
-        
-        #pdb.set_trace()
-        cost = self.conv3d_1(cost)
-        cost = self.conv3d_2(cost) + cost
-        cost = self.conv3d_3(cost) + cost
-        cost = self.conv3d_4(cost) + cost
+        cost_left = self.costVolume(refimg_fea, targetimg_fea, 'left')
+        #cost_right = self.costVolume(refimg_fea, targetimg_fea, 'right')
 
-        cost = self.conv3d_5(cost)
-        #pdb.set_trace()
-        cost = F.interpolate(cost, size=[self.maxdisp, self.img_shape[1], self.img_shape[0]], mode='trilinear', align_corners=False)
-        #pdb.set_trace()
-        pred = cost.softmax(dim=2).squeeze(dim=1)
-        pred = self.disp_reg(pred)
+        pred_left = self.Coarsepred(cost_left)
+        #pred_right = self.Coarsepred(cost_right)
+
+        return pred_left#, pred_right
         
-        return pred
+
 
         
 class RefineNet(nn.Module):
@@ -160,9 +181,7 @@ class ActiveStereoNet(nn.Module):
         self.scale_factor = scale_factor
         self.SiameseTower = SiameseTower(scale_factor)
         self.CoarseNet = CoarseNet(maxdisp, scale_factor, img_shape)
-        self.RefineNet1 = RefineNet()
-        #self.RefineNet2 = RefineNet()
-        #self.RefineNet3 = RefineNet()
+        self.RefineNet = RefineNet()
         #self.InvalidationNet = InvalidationNet()
         self.img_shpae = img_shape
 
@@ -187,21 +206,16 @@ class ActiveStereoNet(nn.Module):
     
     def forward(self, left, right):
         
+        #pdb.set_trace()
         left_tower = self.SiameseTower(left)
         right_tower = self.SiameseTower(right)
         #pdb.set_trace()
         coarseup_pred = self.CoarseNet(left_tower, right_tower)
-        res_disp_1 = self.RefineNet1(left, coarseup_pred)
-        ref_pred1 = coarseup_pred + res_disp_1
-        
-        #res_disp_2 = self.RefineNet2(left, ref_pred1)
-        #ref_pred2 = ref_pred1 + res_disp_2
-        
-        #res_disp_3 = self.RefineNet3(left, ref_pred2)
-        
-        #pred = res_disp_3 + ref_pred2
+        res_disp = self.RefineNet(left, coarseup_pred)
 
-        pred = ref_pred1
+        ref_pred = coarseup_pred + res_disp
+        
+        
 
-        return nn.ReLU(False)(pred)
+        return nn.ReLU(False)(ref_pred)
 
