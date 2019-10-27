@@ -71,7 +71,7 @@ class TrainSolver(object):
         self.scheduler.load_state_dict(states['scheduler_state'])
 
     def run(self):
-        
+        self.model = nn.DataParallel(self.model)
         self.model.cuda()
         
         print('Number of model parameters: {}'.format(sum([p.data.nelement() for p in self.model.parameters()])))
@@ -98,75 +98,75 @@ class TrainSolver(object):
             imgL, imgR, disp_L = imgL.cuda(), imgR.cuda(), disp_L.cuda()
             
             self.optimizer.zero_grad()
-
-            disp_pred = self.model(imgL, imgR)
-
             #pdb.set_trace()
+            disp_pred_left = self.model(imgL, imgR)
             
-            #auxLoss = 0.2 * self.crit(aux_pred_1, disp_L)# + 0.4 * self.crit(aux_pred_2, disp_L) + 0.6 * self.crit(aux_pred_3, disp_L)
-            RHloss = self.crit(disp_pred, disp_L)
+            #pdb.set_trace()
 
-            loss = RHloss #+ auxLoss
+            loss = self.crit(imgL, imgR, disp_pred_left)
             loss.backward()
             self.optimizer.step()
             
             elapsed = time.time() - start_time
-            train_EPE = epe_metric(disp_L, disp_pred, self.max_disp)
-            train_3PE = tripe_metric(disp_L, disp_pred, self.max_disp)
+            train_EPE_left = epe_metric(disp_L, disp_pred_left, self.max_disp)
+            train_3PE_left = tripe_metric(disp_L, disp_pred_left, self.max_disp)
+
             
             print(
-                '[{:d}/{:d}] Train Loss = {:.6f}, EPE = {:.3f} px, 3PE = {:.3f}% time = {:.3f}s.'.format(
+                '[{:d}/{:d}] Train Loss = {:.6f}, EPE = {:.3f} px, 3PE = {:.3f}%, time = {:.3f}s.'.format(
                     self.global_step, self.cfg_solver['max_steps'],
                     loss.item(),
-                    train_EPE, train_3PE * 100,
+                    train_EPE_left, 
+                    train_3PE_left * 100,
                     elapsed
                 ), end='\r'
             )
-
             self.scheduler.step()
+
+            if self.global_step % self.cfg_solver['save_steps'] == 0 and not self.reloaded:
+                self.save_checkpoint()
+                print('')
+                print('[{:d}] Model saved.'.format(self.global_step))
+            
             
             if self.global_step % self.cfg_solver['eval_steps'] == 0 and not self.reloaded:
                 start_time = time.time()
                 self.model.eval()
                 with torch.no_grad():
                     
-                    val_EPE_metric = 0.0
-                    val_TriPE_metric = 0.0
+                    val_EPE_metric_left = 0.0
+                    val_TriPE_metric_left = 0.0
                     N_total = 0.0
                     
                     for val_batch in self.val_loader:
-                        imgL, imgR, disp_L, _ = val_batch
+                        imgL, imgR, disp_L, _= val_batch
                         imgL, imgR, disp_L = imgL.cuda(), imgR.cuda(), disp_L.cuda()
 
                         N_curr = imgL.shape[0]
                         
-                        disp_pred = self.model(imgL, imgR)
+                        disp_pred_left = self.model(imgL, imgR)
                         
-                        val_EPE_metric += epe_metric(disp_L, disp_pred, self.max_disp) * N_curr 
-                        val_TriPE_metric += tripe_metric(disp_L, disp_pred, self.max_disp) * N_curr
+                        val_EPE_metric_left += epe_metric(disp_L, disp_pred_left, self.max_disp) * N_curr 
+                        val_TriPE_metric_left += tripe_metric(disp_L, disp_pred_left, self.max_disp) * N_curr
 
                         N_total += N_curr
                     
-                    val_EPE_metric /= N_total
-                    val_TriPE_metric /= N_total
+                    val_EPE_metric_left /= N_total
+                    val_TriPE_metric_left /= N_total
+                    
 
                     elapsed = time.time() - start_time
-                    print('')
                     print(
-                        '[{:d}/{:d}] Validation: EPE = {:.6f} px, 3PE = {:.3f} %, time = {:.3f} s.'.format(
+                        '[{:d}/{:d}] Validation : EPE = {:.6f} px, 3PE = {:.3f} %, time = {:.3f} s.'.format(
                             self.global_step, self.cfg_solver['max_steps'],
-                            val_EPE_metric, val_TriPE_metric * 100, elapsed / N_total
+                            val_EPE_metric_left, 
+                            val_TriPE_metric_left * 100, 
+                            elapsed / N_total
                         )
                     )
             
 
 
-            if self.global_step % self.cfg_solver['save_steps'] == 0 and not self.reloaded:
-                self.save_checkpoint()
-                print('')
-                print('[{:d}] Model saved.'.format(self.global_step))
-                print('')
-                
             self.global_step += 1
 
             self.reloaded = False

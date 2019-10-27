@@ -71,6 +71,7 @@ class TestSolver(object):
 
 
     def run(self):
+        self.model = nn.DataParallel(self.model)
         self.model.cuda()
 
         if self.cfg_solver['resume_iter'] > 0:

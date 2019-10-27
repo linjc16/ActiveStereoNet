@@ -23,12 +23,12 @@ class SceneFlowDataset(Dataset):
         self.test_split = test_split
         self.transform = transform
 
-        self.left_imgs, self.right_imgs, self.disps, self.test_left_imgs, self.test_right_imgs, self.test_disps = read_sceneflow(self.data_root)
+        self.left_imgs, self.right_imgs, self.disps, self.test_left_imgs, self.test_right_imgs, self.test_disps, self.disps_R, self.test_disps_R = read_sceneflow(self.data_root)
         #pdb.set_trace()
 
-        assert len(self.left_imgs) == len(self.right_imgs) == len(self.disps), 'Invalid training dataset!'
-        assert len(self.test_left_imgs) == len(self.test_right_imgs) == len(self.test_disps), 'Invalid testing dataset!'
-
+        assert len(self.left_imgs) == len(self.right_imgs) == len(self.disps) == len(self.disps_R), 'Invalid training dataset!'
+        assert len(self.test_left_imgs) == len(self.test_right_imgs) == len(self.test_disps) == len(self.test_disps_R), 'Invalid testing dataset!'
+        
         #total_data_num = len(self.left_imgs)
         
         #self.nb_train = int((1 - self.val_split - self.test_split) * total_data_num)
@@ -82,24 +82,28 @@ class SceneFlowDataset(Dataset):
             left_image = self._read_image(self.left_imgs[index])
             right_image = self._read_image(self.right_imgs[index])
             left_disp, scale = read_pfm(self.disps[index])
+            right_disp, scale = read_pfm(self.disps_R[index])
 
         elif self.phase == 'val':
             index = self.val_list[index]
             left_image = self._read_image(self.test_left_imgs[index])
             right_image = self._read_image(self.test_right_imgs[index])
             left_disp, scale = read_pfm(self.test_disps[index])
+            right_disp, scale = read_pfm(self.test_disps_R[index])
 
         elif self.phase == 'test':
             left_image = self._read_image(self.test_left_imgs[index])
             right_image = self._read_image(self.test_right_imgs[index])
             left_disp, scale = read_pfm(self.test_disps[index])
+            right_disp, scale = read_pfm(self.test_disps_R[index])
             
         if self.transform:
             left_image = self.transform(left_image)
             right_image = self.transform(right_image)
         
         left_disp = torch.Tensor(left_disp)
-        return left_image, right_image, left_disp, scale
+        right_disp = torch.Tensor(right_disp)
+        return left_image, right_image, left_disp, right_disp
 
     '''
     def __getitem__(self, index):
